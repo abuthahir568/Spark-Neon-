@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Prism Spark — Neon Laser Puzzle</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Orbitron:wght@600;800&display=swap');
+    :root {
+      --bg-deep: #070b18;
+      --panel-bg: rgba(15, 23, 42, 0.78);
+      --border-glow: rgba(56, 189, 248, 0.25);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at 50% 0%, #131d3b 0%, #070b18 65%, #040711 100%);
+      color: #f1f5f9;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    .font-display { font-family: 'Orbitron', 'Inter', sans-serif; }
+    .glass {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+    }
+    .btn-tap {
+      transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-tap:active { transform: scale(0.94); }
+    #board-wrap {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      margin: 0 auto;
+    }
+    canvas#gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 18px;
+      box-shadow: 0 0 32px rgba(0, 240, 255, 0.12), inset 0 0 20px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      touch-action: none;
+    }
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-pop { animation: popIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen px-3 py-3 sm:py-5 select-none">
+
+  <!-- Top Header & HUD -->
+  <header class="w-full max-w-[480px] flex flex-col gap-2.5">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+          <svg class="w-5 h-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-display text-base sm:text-lg font-extrabold tracking-wider bg-gradient-to-r from-cyan-300 via-sky-200 to-fuchsia-300 bg-clip-text text-transparent leading-none">
+            PRISM SPARK
+          </h1>
+          <p id="levelSubtitle" class="text-[11px] text-slate-400 font-medium mt-0.5">Level 1 • First Spark</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="btnLevels" type="button" title="Select Level" class="btn-tap glass px-2.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-200 hover:bg-slate-800/80 flex items-center gap-1">
+          <span>Levels</span>
+          <span id="totalStarsBadge" class="text-amber-400 font-bold">★ 0</span>
+        </button>
+        <button id="btnSound" type="button" title="Toggle Sound" aria-label="Toggle Sound" class="btn-tap glass w-9 h-9 rounded-xl flex items-center justify-center text-slate-200 hover:bg-slate-800/80">
+          <svg id="iconSoundOn" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <svg id="iconSoundOff" class="w-4 h-4 hidden text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        </button>
+        <button id="btnHelp" type="button" title="How to Play" aria-label="How to Play" class="btn-tap glass w-9 h-9 rounded-xl flex items-center justify-center text-slate-200 hover:bg-slate-800/80 font-bold text-sm">
+          ?
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="glass rounded-2xl px-3.5 py-2 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-3">
+        <div>
+          <span class="text-slate-400 uppercase tracking-wider text-[10px] block">Moves</span>
+          <span id="movesDisplay" class="font-display font-bold text-sm text-white">0</span>
+          <span id="parDisplay" class="text-slate-400 text-[11px]">/ 2 par</span>
+        </div>
+        <div class="h-6 w-px bg-slate-700/70"></div>
+        <div>
+          <span class="text-slate-400 uppercase tracking-wider text-[10px] block">Gems Lit</span>
+          <span id="gemsDisplay" class="font-display font-bold text-sm text-emerald-400">0 / 1</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-1" id="starPreview" aria-label="Current star rating">
+        <span class="text-amber-400 text-base">★</span>
+        <span class="text-amber-400 text-base">★</span>
+        <span class="text-amber-400 text-base">★</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Board -->
+  <main class="w-full flex flex-col items-center my-2.5 flex-1 justify-center">
+    <div id="board-wrap">
+      <canvas id="gameCanvas" aria-label="Prism Spark puzzle grid"></canvas>
+      <!-- Toast Banner -->
+      <div id="toastMsg" class="pointer-events-none opacity-0 transition-opacity duration-300 absolute top-3 left-1/2 -translate-x-1/2 glass px-3.5 py-1.5 rounded-full text-xs font-semibold text-cyan-200 whitespace-nowrap shadow-lg">
+        Tap glowing mirrors to rotate!
+      </div>
+    </div>
+    <p id="tipLine" class="mt-2 text-[11px] sm:text-xs text-slate-400 text-center max-w-[440px] px-2">
+      Tap any mirror to rotate it and guide the laser beam into every crystal gem.
+    </p>
+  </main>
+
+  <!-- Bottom Controls -->
+  <footer class="w-full max-w-[480px] flex flex-col gap-2">
+    <div class="grid grid-cols-4 gap-2">
+      <button id="btnUndo" type="button" class="btn-tap glass py-2.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-slate-200 hover:bg-slate-800/80 disabled:opacity-40">
+        <svg class="w-4 h-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+        </svg>
+        <span class="text-[11px] font-semibold">Undo</span>
+      </button>
+      <button id="btnReset" type="button" class="btn-tap glass py-2.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-slate-200 hover:bg-slate-800/80">
+        <svg class="w-4 h-4 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span class="text-[11px] font-semibold">Reset</span>
+      </button>
+      <button id="btnHint" type="button" class="btn-tap glass py-2.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-slate-200 hover:bg-slate-800/80">
+        <svg class="w-4 h-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        <span class="text-[11px] font-semibold">Hint</span>
+      </button>
+      <button id="btnEndless" type="button" class="btn-tap bg-gradient-to-br from-fuchsia-600/80 to-indigo-600/80 border border-fuchsia-400/40 py-2.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-white hover:brightness-110">
+        <svg class="w-4 h-4 text-fuchsia-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+        </svg>
+        <span class="text-[11px] font-semibold">Endless</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Victory Modal -->
+  <div id="winModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-pop glass w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl border border-cyan-400/30">
+      <div class="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">Circuit Complete</div>
+      <h2 id="winTitle" class="font-display text-2xl font-extrabold text-white mb-2">Level 1 Cleared!</h2>
+      <div id="winStars" class="text-4xl tracking-widest my-3 text-amber-400 drop-shadow">★★★</div>
+      <p id="winStats" class="text-sm text-slate-300 mb-5">Solved in 2 moves (Par 2)</p>
+      <div class="flex gap-2.5">
+        <button id="btnWinReplay" type="button" class="btn-tap flex-1 glass py-3 rounded-xl font-semibold text-sm text-slate-200 hover:bg-slate-800/80">
+          Replay
+        </button>
+        <button id="btnWinNext" type="button" class="btn-tap flex-[1.5] bg-gradient-to-r from-cyan-500 to-blue-500 py-3 rounded-xl font-bold text-sm text-slate-950 shadow-lg shadow-cyan-500/30 hover:brightness-110">
+          Next Level →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level Select Modal -->
+  <div id="levelsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-pop glass w-full max-w-md rounded-3xl p-5 shadow-2xl border border-cyan-400/30 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-2.5">
+        <div>
+          <h2 class="font-display text-lg font-bold text-white">Select Level</h2>
+          <p id="levelsProgressText" class="text-xs text-slate-400">1,000 levels • 0 / 3,000 ★</p>
+        </div>
+        <button id="btnCloseLevels" type="button" class="btn-tap w-8 h-8 rounded-lg glass flex items-center justify-center text-slate-300 hover:text-white">✕</button>
+      </div>
+      <div class="flex items-center gap-1.5 mb-2.5">
+        <button id="btnPagePrev" type="button" class="btn-tap glass px-2.5 py-1.5 rounded-lg text-xs font-bold text-cyan-300 hover:bg-slate-800/80">‹</button>
+        <span id="levelsPageLabel" class="flex-1 text-center text-xs font-semibold text-slate-200">Levels 1 – 50</span>
+        <button id="btnPageNext" type="button" class="btn-tap glass px-2.5 py-1.5 rounded-lg text-xs font-bold text-cyan-300 hover:bg-slate-800/80">›</button>
+        <input id="jumpLevelInput" type="number" min="1" max="1000" placeholder="#" aria-label="Jump to level" class="w-16 bg-slate-900/90 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-cyan-400" />
+        <button id="btnJumpLevel" type="button" class="btn-tap bg-cyan-500/20 border border-cyan-400/50 px-2.5 py-1.5 rounded-lg text-xs font-bold text-cyan-200 hover:bg-cyan-500/30">Go</button>
+      </div>
+      <div id="levelsGrid" class="grid grid-cols-5 gap-2 overflow-y-auto pr-1 py-1"></div>
+      <button id="btnModalEndless" type="button" class="btn-tap mt-4 w-full py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 font-bold text-xs text-white tracking-wide">
+        Play Random Endless Puzzle
+      </button>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-pop glass w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-cyan-400/30">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-display text-lg font-bold text-white">How to Play</h2>
+        <button id="btnCloseHelp" type="button" class="btn-tap w-8 h-8 rounded-lg glass flex items-center justify-center text-slate-300 hover:text-white">✕</button>
+      </div>
+      <ul class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+        <li class="flex gap-2.5 items-start">
+          <span class="w-6 h-6 rounded-md bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-bold flex items-center justify-center shrink-0">/</span>
+          <span><strong class="text-white">Mirrors:</strong> Tap to rotate 90° and bounce the laser beam around walls.</span>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <span class="w-6 h-6 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold flex items-center justify-center shrink-0">❖</span>
+          <span><strong class="text-white">Splitters:</strong> Beam passes straight through AND splits 90° at the same time. Tap to rotate.</span>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <span class="w-6 h-6 rounded-md bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-300 font-bold flex items-center justify-center shrink-0">◎</span>
+          <span><strong class="text-white">Portals:</strong> Beams entering one portal warp out of its matching pair in the same direction.</span>
+        </li>
+        <li class="flex gap-2.5 items-start">
+          <span class="w-6 h-6 rounded-md bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-bold flex items-center justify-center shrink-0">◈</span>
+          <span><strong class="text-white">Color Filters &amp; Gems:</strong> Filters recolor beams. Light up every crystal gem with its matching color to win!</span>
+        </li>
+      </ul>
+      <p class="mt-3 text-[11px] text-slate-400">Desktop tip: Use Arrow keys + Space to play, R to reset, H for hint.</p>
+      <button id="btnHelpGotIt" type="button" class="btn-tap mt-4 w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-sm">
+        Got It!
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // --- Color Palette ---
+      const COLORS = {
+        cyan:    { main: '#00f0ff', glow: 'rgba(0, 240, 255, 0.55)', soft: '#67e8f9' },
+        magenta: { main: '#ff2a85', glow: 'rgba(255, 42, 133, 0.55)', soft: '#f9a8d4' },
+        gold:    { main: '#ffbe0b', glow: 'rgba(255, 190, 11, 0.55)', soft: '#fde047' }
+      };
+
+      // Directions: 0=Up, 1=Right, 2=Down, 3=Left
+      const DR = [-1, 0, 1, 0];
+      const DC = [0, 1, 0, -1];
+
+      // --- 12 Handcrafted, Mathematically Verified Levels ---
+      // tile types: E (emitter), T (target), M (mirror), S (splitter), W (wall), P (portal), F (filter)
+      const LEVELS = [
+        {
+          id: 1, name: 'First Spark', size: 5,
+          tip: 'Tap the glowing mirrors to bounce the cyan laser into the gem.',
+          tiles: [
+            { r: 2, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 2, c: 3, type: 'M', initRot: 0, solRot: 1 },
+            { r: 4, c: 3, type: 'M', initRot: 1, solRot: 0 },
+            { r: 4, c: 1, type: 'T', color: 'cyan' }
+          ]
+        },
+        {
+          id: 2, name: 'Zig Zag', size: 5,
+          tip: 'Beams pass straight through gems so you can chain multiple gems together.',
+          tiles: [
+            { r: 0, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 0, c: 4, type: 'M', initRot: 0, solRot: 1 },
+            { r: 2, c: 4, type: 'M', initRot: 1, solRot: 0 },
+            { r: 2, c: 2, type: 'T', color: 'cyan' },
+            { r: 2, c: 1, type: 'M', initRot: 1, solRot: 0 },
+            { r: 4, c: 1, type: 'T', color: 'cyan' },
+            { r: 1, c: 2, type: 'W' },
+            { r: 3, c: 3, type: 'W' }
+          ]
+        },
+        {
+          id: 3, name: 'The Vault', size: 5,
+          tip: 'Route the gold beam all the way around the obsidian vault to reach its core.',
+          tiles: [
+            { r: 4, c: 0, type: 'E', dir: 0, color: 'gold' },
+            { r: 0, c: 0, type: 'M', initRot: 1, solRot: 0 },
+            { r: 0, c: 2, type: 'T', color: 'gold' },
+            { r: 0, c: 4, type: 'M', initRot: 0, solRot: 1 },
+            { r: 4, c: 4, type: 'M', initRot: 1, solRot: 0 },
+            { r: 4, c: 2, type: 'M', initRot: 0, solRot: 1 },
+            { r: 2, c: 2, type: 'T', color: 'gold' },
+            { r: 1, c: 1, type: 'W' }, { r: 1, c: 2, type: 'W' }, { r: 1, c: 3, type: 'W' },
+            { r: 3, c: 1, type: 'W' }, { r: 3, c: 3, type: 'W' }
+          ]
+        },
+        {
+          id: 4, name: 'Twin Beams', size: 5,
+          tip: 'Splitters let light pass straight through AND reflect 90° at the same time!',
+          tiles: [
+            { r: 2, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 2, c: 2, type: 'S', initRot: 1, solRot: 0 },
+            { r: 0, c: 2, type: 'M', initRot: 1, solRot: 0 },
+            { r: 0, c: 4, type: 'T', color: 'cyan' },
+            { r: 2, c: 4, type: 'T', color: 'cyan' },
+            { r: 1, c: 3, type: 'W' }
+          ]
+        },
+        {
+          id: 5, name: 'Prism Cross', size: 6,
+          tip: 'Chain two splitters to light up three gems from a single laser.',
+          tiles: [
+            { r: 3, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 3, c: 2, type: 'S', initRot: 0, solRot: 1 },
+            { r: 5, c: 2, type: 'M', initRot: 0, solRot: 1 },
+            { r: 5, c: 5, type: 'T', color: 'cyan' },
+            { r: 3, c: 4, type: 'S', initRot: 1, solRot: 0 },
+            { r: 1, c: 4, type: 'T', color: 'cyan' },
+            { r: 3, c: 5, type: 'T', color: 'cyan' },
+            { r: 2, c: 2, type: 'W' }, { r: 4, c: 4, type: 'W' }
+          ]
+        },
+        {
+          id: 6, name: 'Crystal Diamond', size: 6,
+          tip: 'Split the gold beam downward and left to reach all corners.',
+          tiles: [
+            { r: 0, c: 2, type: 'E', dir: 2, color: 'gold' },
+            { r: 2, c: 2, type: 'S', initRot: 1, solRot: 0 },
+            { r: 2, c: 0, type: 'M', initRot: 1, solRot: 0 },
+            { r: 4, c: 0, type: 'T', color: 'gold' },
+            { r: 5, c: 2, type: 'M', initRot: 0, solRot: 1 },
+            { r: 5, c: 4, type: 'T', color: 'gold' },
+            { r: 5, c: 5, type: 'M', initRot: 1, solRot: 0 },
+            { r: 1, c: 5, type: 'T', color: 'gold' },
+            { r: 3, c: 3, type: 'W' }, { r: 2, c: 4, type: 'W' }
+          ]
+        },
+        {
+          id: 7, name: 'Warp Gate', size: 6,
+          tip: 'Portals warp lasers straight across solid walls while keeping their direction!',
+          tiles: [
+            { r: 1, c: 0, type: 'E', dir: 1, color: 'magenta' },
+            { r: 1, c: 1, type: 'P', pair: 'A' },
+            { r: 4, c: 3, type: 'P', pair: 'A' },
+            { r: 4, c: 4, type: 'T', color: 'magenta' },
+            { r: 4, c: 5, type: 'M', initRot: 1, solRot: 0 },
+            { r: 1, c: 5, type: 'M', initRot: 0, solRot: 1 },
+            { r: 1, c: 3, type: 'T', color: 'magenta' },
+            { r: 0, c: 2, type: 'W' }, { r: 1, c: 2, type: 'W' }, { r: 2, c: 2, type: 'W' },
+            { r: 3, c: 2, type: 'W' }, { r: 4, c: 2, type: 'W' }, { r: 5, c: 2, type: 'W' }
+          ]
+        },
+        {
+          id: 8, name: 'Double Warp', size: 6,
+          tip: 'Bounce into the portal, then split the emerging beam to catch every gem.',
+          tiles: [
+            { r: 5, c: 0, type: 'E', dir: 0, color: 'cyan' },
+            { r: 1, c: 0, type: 'M', initRot: 1, solRot: 0 },
+            { r: 1, c: 2, type: 'P', pair: 'A' },
+            { r: 4, c: 3, type: 'P', pair: 'A' },
+            { r: 4, c: 4, type: 'S', initRot: 1, solRot: 0 },
+            { r: 4, c: 5, type: 'T', color: 'cyan' },
+            { r: 2, c: 4, type: 'T', color: 'cyan' },
+            { r: 1, c: 4, type: 'M', initRot: 0, solRot: 1 },
+            { r: 1, c: 3, type: 'T', color: 'cyan' },
+            { r: 2, c: 2, type: 'W' }, { r: 3, c: 2, type: 'W' }, { r: 3, c: 3, type: 'W' }
+          ]
+        },
+        {
+          id: 9, name: 'Color Shift', size: 6,
+          tip: 'Color filters transform any beam into a new color to match colored gems.',
+          tiles: [
+            { r: 2, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 2, c: 2, type: 'S', initRot: 0, solRot: 1 },
+            { r: 2, c: 3, type: 'F', color: 'magenta' },
+            { r: 2, c: 5, type: 'T', color: 'magenta' },
+            { r: 5, c: 2, type: 'M', initRot: 0, solRot: 1 },
+            { r: 5, c: 3, type: 'T', color: 'cyan' },
+            { r: 5, c: 4, type: 'M', initRot: 1, solRot: 0 },
+            { r: 4, c: 4, type: 'T', color: 'cyan' },
+            { r: 3, c: 4, type: 'W' }
+          ]
+        },
+        {
+          id: 10, name: 'Dual Spectrum', size: 6,
+          tip: 'Two lasers can cross right through each other — match each gem with its color!',
+          tiles: [
+            { r: 0, c: 0, type: 'E', dir: 1, color: 'cyan' },
+            { r: 0, c: 2, type: 'T', color: 'cyan' },
+            { r: 0, c: 4, type: 'M', initRot: 0, solRot: 1 },
+            { r: 3, c: 4, type: 'M', initRot: 1, solRot: 0 },
+            { r: 3, c: 1, type: 'T', color: 'cyan' },
+            { r: 5, c: 5, type: 'E', dir: 3, color: 'magenta' },
+            { r: 5, c: 3, type: 'T', color: 'magenta' },
+            { r: 5, c: 1, type: 'M', initRot: 0, solRot: 1 },
+            { r: 1, c: 1, type: 'M', initRot: 1, solRot: 0 },
+            { r: 1, c: 5, type: 'T', color: 'magenta' },
+            { r: 2, c: 2, type: 'W' }, { r: 2, c: 3, type: 'W' }, { r: 4, c: 3, type: 'W' }
+          ]
+        },
+        {
+          id: 11, name: 'Quantum Prism', size: 7,
+          tip: 'Combine a splitter, a warp portal, and two color filters to illuminate all 3 colors.',
+          tiles: [
+            { r: 3, c: 0, type: 'E', dir: 1, color: 'gold' },
+            { r: 3, c: 2, type: 'S', initRot: 1, solRot: 0 },
+            { r: 3, c: 4, type: 'F', color: 'cyan' },
+            { r: 3, c: 6, type: 'M', initRot: 0, solRot: 1 },
+            { r: 6, c: 6, type: 'T', color: 'cyan' },
+            { r: 0, c: 2, type: 'M', initRot: 1, solRot: 0 },
+            { r: 0, c: 4, type: 'T', color: 'gold' },
+            { r: 0, c: 5, type: 'P', pair: 'A' },
+            { r: 5, c: 1, type: 'P', pair: 'A' },
+            { r: 5, c: 3, type: 'F', color: 'magenta' },
+            { r: 5, c: 5, type: 'T', color: 'magenta' },
+            { r: 1, c: 3, type: 'W' }, { r: 2, c: 4, type: 'W' },
+            { r: 4, c: 2, type: 'W' }, { r: 4, c: 5, type: 'W' }
+          ]
+        },
+        {
+          id: 12, name: 'Grand Finale', size: 7,
+          tip: 'Master challenge: dual emitters, splitters, portals, and color shifting!',
+          tiles: [
+            { r: 0, c: 0, type: 'E', dir: 2, color: 'cyan' },
+            { r: 3, c: 0, type: 'S', initRot: 0, solRot: 1 },
+            { r: 6, c: 0, type: 'M', initRot: 0, solRot: 1 },
+            { r: 6, c: 3, type: 'T', color: 'cyan' },
+            { r: 3, c: 2, type: 'P', pair: 'A' },
+            { r: 1, c: 4, type: 'P', pair: 'A' },
+            { r: 1, c: 6, type: 'M', initRot: 0, solRot: 1 },
+            { r: 4, c: 6, type: 'T', color: 'cyan' },
+            { r: 6, c: 6, type: 'E', dir: 0, color: 'magenta' },
+            { r: 5, c: 6, type: 'M', initRot: 0, solRot: 1 },
+            { r: 5, c: 3, type: 'S', initRot: 0, solRot: 1 },
+            { r: 5, c: 2, type: 'F', color: 'gold' },
+            { r: 5, c: 1, type: 'T', color: 'gold' },
+            { r: 2, c: 3, type: 'M', initRot: 1, solRot: 0 },
+            { r: 2, c: 5, type: 'T', color: 'magenta' },
+            { r: 1, c: 2, type: 'W' }, { r: 2, c: 1, type: 'W' },
+            { r: 4, c: 4, type: 'W' }, { r: 3, c: 5, type: 'W' }
+          ]
+        }
+      ];
+
+      // --- Web Audio Synthesizer (zero external audio files) ---
+      let audioCtx = null;
+      let soundEnabled = true;
+
+      function ensureAudio() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function playTone(freq, duration, type = 'sine', gainVal = 0.08, delay = 0) {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        const now = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(gainVal, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      function sfxRotate() {
+        playTone(420, 0.08, 'triangle', 0.07);
+        playTone(620, 0.06, 'sine', 0.04, 0.02);
+      }
+
+      function sfxGemLit() {
+        playTone(587.33, 0.16, 'sine', 0.07);
+        playTone(880, 0.22, 'triangle', 0.05, 0.05);
+      }
+
+      function sfxWin() {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((n, i) => playTone(n, 0.35, 'triangle', 0.09, i * 0.08));
+      }
+
+      function sfxHint() {
+        playTone(340, 0.12, 'sine', 0.06);
+        playTone(510, 0.16, 'sine', 0.06, 0.08);
+      }
+
+      // --- Game State ---
+      let state = {
+        mode: 'campaign', // 'campaign' | 'endless'
+        levelIndex: 0,
+        endlessCount: 0,
+        size: 5,
+        name: '',
+        tip: '',
+        grid: [],        // 2D array of tile objects or null
+        rotatables: [],  // list of rotatable tile refs
+        par: 2,
+        moves: 0,
+        undoStack: [],
+        beams: [],
+        litTargets: new Set(),
+        totalTargets: 0,
+        won: false,
+        hintTile: null,
+        hintTimer: 0,
+        cursor: null,    // {r, c} for keyboard nav
+        particles: [],
+        starsEarned: {}, // { levelId: 1..3 }
+        animTime: 0
+      };
+
+      // Load saved stars safely
+      try {
+        const saved = localStorage.getItem('prism_spark_stars_v1');
+        if (saved) state.starsEarned = JSON.parse(saved) || {};
+      } catch (e) {}
+
+      function saveStars() {
+        try {
+          localStorage.setItem('prism_spark_stars_v1', JSON.stringify(state.starsEarned));
+        } catch (e) {}
+      }
+
+      const TOTAL_LEVELS = 1000;
+      const PAGE_SIZE = 50;
+      let levelsModalPage = 0;
+      const levelCache = {};
+
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0;
+          a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function simulateTiles(size, tiles, useSol) {
+        const grid = Array.from({ length: size }, () => Array(size).fill(null));
+        const portals = {};
+        let targets = 0;
+        const queue = [];
+        for (let i = 0; i < tiles.length; i++) {
+          const tc = Object.assign({}, tiles[i]);
+          if (tc.type === 'M' || tc.type === 'S') tc.rot = useSol ? tc.solRot : tc.initRot;
+          grid[tc.r][tc.c] = tc;
+          if (tc.type === 'E') queue.push({ r: tc.r, c: tc.c, d: tc.dir, col: tc.color });
+          else if (tc.type === 'P') (portals[tc.pair] = portals[tc.pair] || []).push(tc);
+          else if (tc.type === 'T') targets++;
+        }
+        const lit = new Set();
+        const visited = new Set();
+        let safety = 0;
+        while (queue.length > 0 && safety++ < 600) {
+          const ray = queue.shift();
+          const nr = ray.r + DR[ray.d];
+          const nc = ray.c + DC[ray.d];
+          if (nr < 0 || nr >= size || nc < 0 || nc >= size) continue;
+          const k = `${nr},${nc},${ray.d},${ray.col}`;
+          if (visited.has(k)) continue;
+          visited.add(k);
+          const tile = grid[nr][nc];
+          if (!tile) {
+            queue.push({ r: nr, c: nc, d: ray.d, col: ray.col });
+          } else if (tile.type === 'W' || tile.type === 'E') {
+            continue;
+          } else if (tile.type === 'T') {
+            if (tile.color === ray.col) lit.add(`${nr},${nc}`);
+            queue.push({ r: nr, c: nc, d: ray.d, col: ray.col });
+          } else if (tile.type === 'F') {
+            queue.push({ r: nr, c: nc, d: ray.d, col: tile.color });
+          } else if (tile.type === 'M') {
+            const nd = (tile.rot % 2 === 0) ? (ray.d ^ 1) : (3 - ray.d);
+            queue.push({ r: nr, c: nc, d: nd, col: ray.col });
+          } else if (tile.type === 'S') {
+            const nd = (tile.rot % 2 === 0) ? (ray.d ^ 1) : (3 - ray.d);
+            queue.push({ r: nr, c: nc, d: ray.d, col: ray.col });
+            queue.push({ r: nr, c: nc, d: nd, col: ray.col });
+          } else if (tile.type === 'P') {
+            const list = portals[tile.pair] || [];
+            const other = list.find(p => p.r !== nr || p.c !== nc);
+            if (other) queue.push({ r: other.r, c: other.c, d: ray.d, col: ray.col });
+          }
+        }
+        return { lit: lit.size, targets };
+      }
+
+      function getSectorMeta(levelNum) {
+        if (levelNum <= 100) return { sector: 'Neon Mirrors', size: levelNum <= 40 ? 5 : 6, turns: 4, allowSplit: false, allowPortal: false, allowFilter: false, tip: 'Bounce the laser around obsidian walls to light every crystal gem.' };
+        if (levelNum <= 250) return { sector: 'Prism Splitters', size: 6, turns: 5, allowSplit: true, allowPortal: false, allowFilter: false, tip: 'Use splitters to branch one laser beam into multiple targets.' };
+        if (levelNum <= 450) return { sector: 'Warp Portals', size: levelNum <= 350 ? 6 : 7, turns: 5, allowSplit: true, allowPortal: true, allowFilter: false, tip: 'Guide beams through warp portals to cross the grid in a flash.' };
+        if (levelNum <= 700) return { sector: 'Chroma Filters', size: 7, turns: 6, allowSplit: true, allowPortal: true, allowFilter: true, tip: 'Color filters recolor beams — match every gem with its exact color!' };
+        return { sector: 'Quantum Master', size: levelNum <= 850 ? 7 : 8, turns: 7, allowSplit: true, allowPortal: true, allowFilter: true, tip: 'Master circuit: combine mirrors, splitters, warp portals, and color filters!' };
+      }
+
+      function generateDeterministicLevel(levelNum) {
+        const meta = getSectorMeta(levelNum);
+        const size = meta.size;
+        const colors = ['cyan', 'magenta', 'gold'];
+
+        for (let attempt = 0; attempt < 80; attempt++) {
+          const rng = mulberry32((levelNum * 2654435761 + attempt * 1013904223) >>> 0);
+          const randInt = (n) => Math.floor(rng() * n);
+          const grid = Array.from({ length: size }, () => Array(size).fill(null));
+          const tiles = [];
+
+          let curColor = colors[(levelNum + attempt) % colors.length];
+          const edge = randInt(4);
+          let er, ec, dir;
+          if (edge === 0) { er = 0; ec = randInt(size); dir = 2; }
+          else if (edge === 1) { er = randInt(size); ec = 0; dir = 1; }
+          else if (edge === 2) { er = size - 1; ec = randInt(size); dir = 0; }
+          else { er = randInt(size); ec = size - 1; dir = 3; }
+
+          tiles.push({ r: er, c: ec, type: 'E', dir, color: curColor });
+          grid[er][ec] = 'E';
+
+          let r = er, c = ec;
+          let mirrorsPlaced = 0;
+          let portalPlaced = false;
+          let filterPlaced = false;
+          const segCells = []; // {r, c, color}
+
+          for (let step = 0; step < meta.turns; step++) {
+            const cands = [];
+            let nr = r + DR[dir], nc = c + DC[dir];
+            while (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+              if (grid[nr][nc] !== null) break;
+              cands.push({ r: nr, c: nc });
+              nr += DR[dir];
+              nc += DC[dir];
+            }
+            if (cands.length === 0) break;
+
+            const pickIdx = cands.length > 1 ? 1 + randInt(cands.length - 1) : 0;
+            const pick = cands[pickIdx];
+            for (let i = 0; i < pickIdx; i++) {
+              segCells.push({ r: cands[i].r, c: cands[i].c, color: curColor });
+            }
+
+            if (step === meta.turns - 1) {
+              tiles.push({ r: pick.r, c: pick.c, type: 'T', color: curColor });
+              grid[pick.r][pick.c] = 'T';
+              break;
+            }
+
+            // Optionally place a linked Portal pair mid-path
+            if (meta.allowPortal && !portalPlaced && step >= 1 && step <= meta.turns - 3 && rng() < 0.45) {
+              const empties = [];
+              for (let pr = 1; pr < size - 1; pr++) {
+                for (let pc = 1; pc < size - 1; pc++) {
+                  if (!grid[pr][pc] && (pr !== pick.r || pc !== pick.c)) {
+                    const tr = pr + DR[dir], tc = pc + DC[dir];
+                    if (tr >= 0 && tr < size && tc >= 0 && tc < size && !grid[tr][tc]) {
+                      empties.push({ r: pr, c: pc });
+                    }
+                  }
+                }
+              }
+              if (empties.length > 0) {
+                const exitP = empties[randInt(empties.length)];
+                tiles.push({ r: pick.r, c: pick.c, type: 'P', pair: 'A' });
+                tiles.push({ r: exitP.r, c: exitP.c, type: 'P', pair: 'A' });
+                grid[pick.r][pick.c] = 'P';
+                grid[exitP.r][exitP.c] = 'P';
+                r = exitP.r; c = exitP.c;
+                portalPlaced = true;
+                continue;
+              }
+            }
+
+            // Optionally place a Color Filter on an intermediate cell before turning
+            if (meta.allowFilter && !filterPlaced && pickIdx >= 1 && rng() < 0.55) {
+              const fcCell = cands[0];
+              if (!grid[fcCell.r][fcCell.c]) {
+                const nextColor = colors[(colors.indexOf(curColor) + 1 + randInt(2)) % colors.length];
+                tiles.push({ r: fcCell.r, c: fcCell.c, type: 'F', color: nextColor });
+                grid[fcCell.r][fcCell.c] = 'F';
+                curColor = nextColor;
+                filterPlaced = true;
+              }
+            }
+
+            // Turn with Mirror or Splitter
+            const rots = rng() < 0.5 ? [0, 1] : [1, 0];
+            let turned = false;
+            for (let ri = 0; ri < rots.length; ri++) {
+              const solRot = rots[ri];
+              const ndir = solRot === 0 ? (dir ^ 1) : (3 - dir);
+              const tr = pick.r + DR[ndir], tc = pick.c + DC[ndir];
+              if (tr >= 0 && tr < size && tc >= 0 && tc < size && grid[tr][tc] === null) {
+                const isSplit = meta.allowSplit && mirrorsPlaced >= 1 && mirrorsPlaced <= 2 && rng() < 0.45;
+                tiles.push({
+                  r: pick.r, c: pick.c,
+                  type: isSplit ? 'S' : 'M',
+                  initRot: 1 - solRot,
+                  solRot
+                });
+                grid[pick.r][pick.c] = 'M';
+                // If splitter, optionally put a bonus target straight ahead
+                if (isSplit) {
+                  let sr = pick.r + DR[dir], sc = pick.c + DC[dir];
+                  let straightCands = [];
+                  while (sr >= 0 && sr < size && sc >= 0 && sc < size && !grid[sr][sc]) {
+                    straightCands.push({ r: sr, c: sc });
+                    sr += DR[dir]; sc += DC[dir];
+                  }
+                  if (straightCands.length > 0) {
+                    const st = straightCands[straightCands.length - 1];
+                    tiles.push({ r: st.r, c: st.c, type: 'T', color: curColor });
+                    grid[st.r][st.c] = 'T';
+                  }
+                }
+                r = pick.r; c = pick.c; dir = ndir;
+                mirrorsPlaced++;
+                turned = true;
+                break;
+              }
+            }
+            if (!turned) {
+              tiles.push({ r: pick.r, c: pick.c, type: 'T', color: curColor });
+              grid[pick.r][pick.c] = 'T';
+              break;
+            }
+          }
+
+          // Place 1-2 extra gems along path segments
+          let extraGems = 0;
+          for (let i = segCells.length - 1; i >= 0 && extraGems < 2; i--) {
+            const sc = segCells[i];
+            if (!grid[sc.r][sc.c] && rng() < 0.35) {
+              tiles.push({ r: sc.r, c: sc.c, type: 'T', color: sc.color });
+              grid[sc.r][sc.c] = 'T';
+              extraGems++;
+            }
+          }
+
+          // Add decorative obsidian walls in unused cells
+          const pathOcc = new Set(segCells.map(p => `${p.r},${p.c}`));
+          const wallTarget = Math.min(6, 2 + Math.floor(size / 2));
+          let walls = 0;
+          for (let w = 0; w < 24 && walls < wallTarget; w++) {
+            const wr = randInt(size), wc = randInt(size);
+            if (!grid[wr][wc] && !pathOcc.has(`${wr},${wc}`)) {
+              grid[wr][wc] = 'W';
+              tiles.push({ r: wr, c: wc, type: 'W' });
+              walls++;
+            }
+          }
+
+          if (mirrorsPlaced >= 3) {
+            const solSim = simulateTiles(size, tiles, true);
+            const initSim = simulateTiles(size, tiles, false);
+            if (solSim.targets >= 1 && solSim.lit === solSim.targets && initSim.lit < solSim.targets) {
+              return {
+                id: levelNum,
+                name: `${meta.sector}`,
+                size,
+                tip: meta.tip,
+                tiles
+              };
+            }
+          }
+        }
+        // Guaranteed fallback (cloned handcrafted level with levelNum id)
+        const fb = LEVELS[(levelNum - 1) % LEVELS.length];
+        return {
+          id: levelNum,
+          name: `${meta.sector}`,
+          size: fb.size,
+          tip: meta.tip,
+          tiles: fb.tiles.map(t => Object.assign({}, t))
+        };
+      }
+
+      function getCampaignLevel(indexZeroBased) {
+        if (indexZeroBased < LEVELS.length) return LEVELS[indexZeroBased];
+        const levelNum = indexZeroBased + 1;
+        if (!levelCache[levelNum]) {
+          levelCache[levelNum] = generateDeterministicLevel(levelNum);
+        }
+        return levelCache[levelNum];
+      }
+
+      // --- Endless Random Solvable Puzzle Generator ---
+      function generateEndlessLevel(seedNum) {
+        const size = 6;
+        const colors = ['cyan', 'magenta', 'gold'];
+        const mainColor = colors[seedNum % colors.length];
+
+        for (let attempt = 0; attempt < 40; attempt++) {
+          const grid = Array.from({ length: size }, () => Array(size).fill(null));
+          // Pick emitter on left or top edge
+          const fromLeft = Math.random() < 0.5;
+          const er = fromLeft ? Math.floor(Math.random() * size) : 0;
+          const ec = fromLeft ? 0 : Math.floor(Math.random() * size);
+          let dir = fromLeft ? 1 : 2;
+          const tiles = [{ r: er, c: ec, type: 'E', dir, color: mainColor }];
+          grid[er][ec] = 'E';
+
+          let r = er, c = ec;
+          let mirrorsPlaced = 0;
+          const targetCount = 4 + (seedNum % 2); // 4 or 5 turns
+          let pathCells = [];
+
+          for (let step = 0; step < targetCount; step++) {
+            // Walk 1..4 cells in current dir
+            const candidates = [];
+            let nr = r + DR[dir], nc = c + DC[dir];
+            while (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+              if (grid[nr][nc] !== null) break;
+              candidates.push({ r: nr, c: nc });
+              nr += DR[dir];
+              nc += DC[dir];
+            }
+            if (candidates.length === 0) break;
+            // Prefer cells not right next to current if possible
+            const pickIdx = candidates.length > 1
+              ? 1 + Math.floor(Math.random() * (candidates.length - 1))
+              : 0;
+            const pick = candidates[pickIdx];
+
+            // Record intermediate cells for possible gems
+            for (let i = 0; i < pickIdx; i++) {
+              pathCells.push(candidates[i]);
+            }
+
+            if (step === targetCount - 1) {
+              // Place final target
+              tiles.push({ r: pick.r, c: pick.c, type: 'T', color: mainColor });
+              grid[pick.r][pick.c] = 'T';
+              break;
+            }
+
+            // Try turning left or right
+            const possibleRots = [0, 1].sort(() => Math.random() - 0.5);
+            let turned = false;
+            for (const solRot of possibleRots) {
+              const ndir = solRot === 0 ? (dir ^ 1) : (3 - dir);
+              const tr = pick.r + DR[ndir], tc = pick.c + DC[ndir];
+              if (tr >= 0 && tr < size && tc >= 0 && tc < size && grid[tr][tc] === null) {
+                const isSplitter = (mirrorsPlaced === 1 && Math.random() < 0.5);
+                tiles.push({
+                  r: pick.r, c: pick.c,
+                  type: isSplitter ? 'S' : 'M',
+                  initRot: 1 - solRot,
+                  solRot
+                });
+                grid[pick.r][pick.c] = 'M';
+                r = pick.r; c = pick.c; dir = ndir;
+                mirrorsPlaced++;
+                turned = true;
+                break;
+              }
+            }
+            if (!turned) {
+              tiles.push({ r: pick.r, c: pick.c, type: 'T', color: mainColor });
+              grid[pick.r][pick.c] = 'T';
+              break;
+            }
+          }
+
+          // Add 1 extra gem along the path if available
+          if (pathCells.length > 0) {
+            const extra = pathCells[Math.floor(Math.random() * pathCells.length)];
+            if (!grid[extra.r][extra.c]) {
+              tiles.push({ r: extra.r, c: extra.c, type: 'T', color: mainColor });
+              grid[extra.r][extra.c] = 'T';
+            }
+          }
+
+          // Add 2-3 decorative walls in empty cells not on path
+          const pathSet = new Set(pathCells.map(p => `${p.r},${p.c}`));
+          let walls = 0;
+          for (let w = 0; w < 15 && walls < 3; w++) {
+            const wr = Math.floor(Math.random() * size);
+            const wc = Math.floor(Math.random() * size);
+            if (!grid[wr][wc] && !pathSet.has(`${wr},${wc}`)) {
+              grid[wr][wc] = 'W';
+              tiles.push({ r: wr, c: wc, type: 'W' });
+              walls++;
+            }
+          }
+
+          const hasTarget = tiles.some(t => t.type === 'T');
+          if (hasTarget && mirrorsPlaced >= 3) {
+            return {
+              id: 100 + seedNum,
+              name: `Endless #${seedNum}`,
+              size,
+              tip: 'Procedurally generated circuit — rotate mirrors to light every gem!',
+              tiles
+            };
+          }
+        }
+        // Fallback to level 5
+        return LEVELS[4];
+      }
+
+      // --- Load Level ---
+      function loadLevel(levelObj, mode = 'campaign') {
+        state.mode = mode;
+        state.size = levelObj.size;
+        state.name = levelObj.name;
+        state.tip = levelObj.tip;
+        state.moves = 0;
+        state.undoStack = [];
+        state.won = false;
+        state.hintTile = null;
+        state.hintTimer = 0;
+        state.particles = [];
+        state.cursor = null;
+
+        state.grid = Array.from({ length: state.size }, () => Array(state.size).fill(null));
+        state.rotatables = [];
+        state.totalTargets = 0;
+
+        let parCalc = 0;
+        levelObj.tiles.forEach(t => {
+          const tile = Object.assign({}, t);
+          if (tile.type === 'M' || tile.type === 'S') {
+            tile.rot = tile.initRot;
+            tile.visualAngle = tile.rot * (Math.PI / 2);
+            tile.targetAngle = tile.visualAngle;
+            state.rotatables.push(tile);
+            if (tile.initRot % 2 !== tile.solRot % 2) parCalc++;
+          }
+          if (tile.type === 'T') state.totalTargets++;
+          state.grid[tile.r][tile.c] = tile;
+        });
+
+        state.par = Math.max(1, parCalc);
+        computeBeams(false);
+        updateHUD();
+        hideModals();
+        showToast(mode === 'endless' ? `${levelObj.name}` : `Level ${levelObj.id}: ${levelObj.name}`);
+      }
+
+      // --- Raytracing Engine ---
+      function computeBeams(triggerEffects = true) {
+        const prevLit = new Set(state.litTargets);
+        const beams = [];
+        const litTargets = new Set();
+        const visited = new Set();
+        const queue = [];
+
+        // Find portals map
+        const portals = {};
+        for (let r = 0; r < state.size; r++) {
+          for (let c = 0; c < state.size; c++) {
+            const tile = state.grid[r][c];
+            if (!tile) continue;
+            if (tile.type === 'E') {
+              queue.push({ r, c, dir: tile.dir, color: tile.color, isStart: true });
+            } else if (tile.type === 'P') {
+              if (!portals[tile.pair]) portals[tile.pair] = [];
+              portals[tile.pair].push(tile);
+            }
+          }
+        }
+
+        let safety = 0;
+        while (queue.length > 0 && safety++ < 600) {
+          const ray = queue.shift();
+          let { r, c, dir, color, isStart } = ray;
+          const startR = r, startC = c;
+
+          const nr = r + DR[dir];
+          const nc = c + DC[dir];
+
+          // If exiting board
+          if (nr < 0 || nr >= state.size || nc < 0 || nc >= state.size) {
+            beams.push({
+              r1: startR, c1: startC,
+              r2: startR + DR[dir] * 0.48,
+              c2: startC + DC[dir] * 0.48,
+              color
+            });
+            continue;
+          }
+
+          const visitKey = `${nr},${nc},${dir},${color}`;
+          if (visited.has(visitKey)) {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            continue;
+          }
+          visited.add(visitKey);
+
+          const tile = state.grid[nr][nc];
+
+          if (!tile) {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            queue.push({ r: nr, c: nc, dir, color });
+          } else if (tile.type === 'W' || tile.type === 'E') {
+            beams.push({
+              r1: startR, c1: startC,
+              r2: nr - DR[dir] * 0.36,
+              c2: nc - DC[dir] * 0.36,
+              color
+            });
+          } else if (tile.type === 'T') {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            if (tile.color === color) {
+              litTargets.add(`${nr},${nc}`);
+            }
+            queue.push({ r: nr, c: nc, dir, color });
+          } else if (tile.type === 'F') {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            queue.push({ r: nr, c: nc, dir, color: tile.color });
+          } else if (tile.type === 'M') {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            const ndir = (tile.rot % 2 === 0) ? (dir ^ 1) : (3 - dir);
+            queue.push({ r: nr, c: nc, dir: ndir, color });
+          } else if (tile.type === 'S') {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            // Pass straight through AND reflect 90 degrees
+            const ndir = (tile.rot % 2 === 0) ? (dir ^ 1) : (3 - dir);
+            queue.push({ r: nr, c: nc, dir, color });
+            queue.push({ r: nr, c: nc, dir: ndir, color });
+          } else if (tile.type === 'P') {
+            beams.push({ r1: startR, c1: startC, r2: nr, c2: nc, color });
+            const pairList = portals[tile.pair] || [];
+            const other = pairList.find(p => p.r !== nr || p.c !== nc);
+            if (other) {
+              queue.push({ r: other.r, c: other.c, dir, color });
+            }
+          }
+        }
+
+        state.beams = beams;
+        state.litTargets = litTargets;
+
+        // Spawn sparkles on newly lit gems
+        if (triggerEffects) {
+          let newlyLit = false;
+          litTargets.forEach(key => {
+            if (!prevLit.has(key)) {
+              newlyLit = true;
+              const [tr, tc] = key.split(',').map(Number);
+              const tile = state.grid[tr][tc];
+              spawnParticles(tr, tc, COLORS[tile.color].main, 16);
+            }
+          });
+          if (newlyLit) sfxGemLit();
+        }
+
+        // Check win
+        if (!state.won && state.totalTargets > 0 && litTargets.size === state.totalTargets) {
+          state.won = true;
+          handleVictory();
+        }
+      }
+
+      function handleVictory() {
+        sfxWin();
+        // Big celebration burst on all targets
+        state.litTargets.forEach(key => {
+          const [tr, tc] = key.split(',').map(Number);
+          const tile = state.grid[tr][tc];
+          spawnParticles(tr, tc, COLORS[tile.color].main, 28);
+        });
+
+        const stars = state.moves <= state.par ? 3 : (state.moves <= state.par + 3 ? 2 : 1);
+        if (state.mode === 'campaign') {
+          const lvlId = getCampaignLevel(state.levelIndex).id;
+          state.starsEarned[lvlId] = Math.max(state.starsEarned[lvlId] || 0, stars);
+          saveStars();
+        }
+        updateHUD();
+
+        setTimeout(() => {
+          if (!state.won) return;
+          const winTitle = document.getElementById('winTitle');
+          const winStars = document.getElementById('winStars');
+          const winStats = document.getElementById('winStats');
+          const btnNext = document.getElementById('btnWinNext');
+
+          winTitle.textContent = state.mode === 'endless'
+            ? `${state.name} Cleared!`
+            : `Level ${getCampaignLevel(state.levelIndex).id} Cleared!`;
+          winStars.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+          winStats.textContent = `Solved in ${state.moves} move${state.moves === 1 ? '' : 's'} (Par ${state.par})`;
+
+          if (state.mode === 'endless') {
+            btnNext.textContent = 'Next Endless →';
+          } else if (state.levelIndex < TOTAL_LEVELS - 1) {
+            btnNext.textContent = 'Next Level →';
+          } else {
+            btnNext.textContent = 'Try Endless Mode →';
+          }
+          document.getElementById('winModal').classList.remove('hidden');
+        }, 480);
+      }
+
+      function rotateTile(r, c, recordUndo = true) {
+        if (state.won) return;
+        const tile = state.grid[r] && state.grid[r][c];
+        if (!tile || (tile.type !== 'M' && tile.type !== 'S')) return;
+
+        ensureAudio();
+        tile.rot = (tile.rot + 1) % 2;
+        tile.targetAngle += Math.PI / 2;
+        if (recordUndo) {
+          state.undoStack.push({ r, c });
+          state.moves++;
+        }
+        if (state.hintTile && state.hintTile.r === r && state.hintTile.c === c) {
+          state.hintTile = null;
+        }
+        sfxRotate();
+        spawnParticles(r, c, '#38bdf8', 7);
+        computeBeams(true);
+        updateHUD();
+      }
+
+      // --- Particles ---
+      function spawnParticles(r, c, color, count) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.6 + Math.random() * 2.2;
+          state.particles.push({
+            r: r + 0.5,
+            c: c + 0.5,
+            vr: Math.sin(angle) * speed * 0.04,
+            vc: Math.cos(angle) * speed * 0.04,
+            life: 1.0,
+            decay: 0.025 + Math.random() * 0.025,
+            size: 2 + Math.random() * 3,
+            color
+          });
+        }
+      }
+
+      // --- UI Helpers ---
+      let toastTimeout = null;
+      function showToast(msg) {
+        const el = document.getElementById('toastMsg');
+        el.textContent = msg;
+        el.classList.remove('opacity-0');
+        el.classList.add('opacity-100');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          el.classList.remove('opacity-100');
+          el.classList.add('opacity-0');
+        }, 2100);
+      }
+
+      function hideModals() {
+        document.getElementById('winModal').classList.add('hidden');
+        document.getElementById('levelsModal').classList.add('hidden');
+        document.getElementById('helpModal').classList.add('hidden');
+      }
+
+      function updateHUD() {
+        const sub = state.mode === 'endless'
+          ? `${state.name} • Random`
+          : `Level ${getCampaignLevel(state.levelIndex).id} / ${TOTAL_LEVELS} • ${state.name}`;
+        document.getElementById('levelSubtitle').textContent = sub;
+        document.getElementById('movesDisplay').textContent = String(state.moves);
+        document.getElementById('parDisplay').textContent = `/ ${state.par} par`;
+        document.getElementById('gemsDisplay').textContent = `${state.litTargets.size} / ${state.totalTargets}`;
+        document.getElementById('tipLine').textContent = state.tip;
+        document.getElementById('btnUndo').disabled = state.undoStack.length === 0 || state.won;
+
+        // Live star preview
+        const stars = state.moves <= state.par ? 3 : (state.moves <= state.par + 3 ? 2 : 1);
+        const sp = document.getElementById('starPreview');
+        sp.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+          const span = document.createElement('span');
+          span.textContent = i < stars ? '★' : '☆';
+          span.className = i < stars ? 'text-amber-400 text-base' : 'text-slate-600 text-base';
+          sp.appendChild(span);
+        }
+
+        const totalStars = Object.values(state.starsEarned).reduce((a, b) => a + b, 0);
+        document.getElementById('totalStarsBadge').textContent = `★ ${totalStars}`;
+      }
+
+      function renderLevelsModal() {
+        const totalPages = Math.ceil(TOTAL_LEVELS / PAGE_SIZE);
+        levelsModalPage = Math.max(0, Math.min(totalPages - 1, levelsModalPage));
+        const startIdx = levelsModalPage * PAGE_SIZE;
+        const endIdx = Math.min(TOTAL_LEVELS, startIdx + PAGE_SIZE);
+
+        const totalStars = Object.values(state.starsEarned).reduce((a, b) => a + b, 0);
+        const clearedCount = Object.keys(state.starsEarned).length;
+        document.getElementById('levelsProgressText').textContent =
+          `${TOTAL_LEVELS.toLocaleString()} levels • ${clearedCount} cleared • ★ ${totalStars}`;
+        document.getElementById('levelsPageLabel').textContent =
+          `Levels ${startIdx + 1} – ${endIdx}`;
+        document.getElementById('btnPagePrev').disabled = levelsModalPage === 0;
+        document.getElementById('btnPageNext').disabled = levelsModalPage === totalPages - 1;
+
+        const grid = document.getElementById('levelsGrid');
+        grid.innerHTML = '';
+        for (let idx = startIdx; idx < endIdx; idx++) {
+          const lvlId = idx + 1;
+          const stars = state.starsEarned[lvlId] || 0;
+          const isCurrent = state.mode === 'campaign' && state.levelIndex === idx;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `btn-tap rounded-xl py-2 px-1 text-center border transition ${
+            isCurrent
+              ? 'bg-cyan-500/25 border-cyan-400 text-white'
+              : stars > 0
+                ? 'bg-emerald-950/40 border-emerald-500/40 text-slate-100 hover:border-cyan-400/60'
+                : 'bg-slate-900/70 border-slate-700/70 text-slate-200 hover:border-cyan-500/50'
+          }`;
+          btn.innerHTML = `
+            <div class="font-display font-bold text-xs">${lvlId}</div>
+            <div class="text-[9px] leading-none mt-1 ${stars > 0 ? 'text-amber-400' : 'text-slate-600'}">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+          `;
+          btn.addEventListener('click', () => {
+            state.levelIndex = idx;
+            loadLevel(getCampaignLevel(idx), 'campaign');
+          });
+          grid.appendChild(btn);
+        }
+      }
+
+      // --- Canvas Rendering ---
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      let boardPx = 360;
+      let dpr = 1;
+
+      function resizeCanvas() {
+        const wrap = document.getElementById('board-wrap');
+        const rect = wrap.getBoundingClientRect();
+        boardPx = Math.max(240, Math.floor(rect.width));
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(boardPx * dpr);
+        canvas.height = Math.floor(boardPx * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function drawRoundedRect(x, y, w, h, rad) {
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.lineTo(x + w - rad, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+        ctx.lineTo(x + w, y + h - rad);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+        ctx.lineTo(x + rad, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+        ctx.lineTo(x, y + rad);
+        ctx.quadraticCurveTo(x, y, x + rad, y);
+        ctx.closePath();
+      }
+
+      function render(ts) {
+        state.animTime = ts * 0.001;
+        const pad = 12;
+        const inner = boardPx - pad * 2;
+        const cell = inner / state.size;
+
+        // Background
+        ctx.fillStyle = '#090f22';
+        ctx.fillRect(0, 0, boardPx, boardPx);
+
+        // Subtle grid cells
+        for (let r = 0; r < state.size; r++) {
+          for (let c = 0; c < state.size; c++) {
+            const x = pad + c * cell;
+            const y = pad + r * cell;
+            drawRoundedRect(x + 2, y + 2, cell - 4, cell - 4, 8);
+            ctx.fillStyle = (r + c) % 2 === 0 ? 'rgba(30, 41, 59, 0.42)' : 'rgba(15, 23, 42, 0.55)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.22)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+
+        // Keyboard focus cursor
+        if (state.cursor) {
+          const cx = pad + state.cursor.c * cell;
+          const cy = pad + state.cursor.r * cell;
+          drawRoundedRect(cx + 3, cy + 3, cell - 6, cell - 6, 8);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Hint pulse highlight
+        if (state.hintTile) {
+          const hx = pad + (state.hintTile.c + 0.5) * cell;
+          const hy = pad + (state.hintTile.r + 0.5) * cell;
+          const pulse = 0.5 + 0.5 * Math.sin(state.animTime * 7);
+          ctx.beginPath();
+          ctx.arc(hx, hy, cell * (0.38 + pulse * 0.08), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(251, 191, 36, ${0.45 + pulse * 0.55})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+
+        // Draw Laser Beams (layered glow + animated energy dashes)
+        ctx.save();
+        ctx.lineCap = 'round';
+        state.beams.forEach(b => {
+          const x1 = pad + (b.c1 + 0.5) * cell;
+          const y1 = pad + (b.r1 + 0.5) * cell;
+          const x2 = pad + (b.c2 + 0.5) * cell;
+          const y2 = pad + (b.r2 + 0.5) * cell;
+          const col = COLORS[b.color] || COLORS.cyan;
+
+          // Outer glow
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = col.glow;
+          ctx.lineWidth = Math.max(8, cell * 0.2);
+          ctx.stroke();
+
+          // Mid beam
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = col.main;
+          ctx.lineWidth = Math.max(3.2, cell * 0.08);
+          ctx.stroke();
+
+          // White core
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = Math.max(1.4, cell * 0.032);
+          ctx.stroke();
+
+          // Moving photon pulse
+          ctx.save();
+          ctx.setLineDash([4, 14]);
+          ctx.lineDashOffset = -state.animTime * 48;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = col.soft;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          ctx.restore();
+        });
+        ctx.restore();
+
+        // Draw Tiles
+        for (let r = 0; r < state.size; r++) {
+          for (let c = 0; c < state.size; c++) {
+            const tile = state.grid[r][c];
+            if (!tile) continue;
+            const cx = pad + (c + 0.5) * cell;
+            const cy = pad + (r + 0.5) * cell;
+
+            if (tile.type === 'W') {
+              // Obsidian beveled wall
+              const s = cell * 0.78;
+              drawRoundedRect(cx - s / 2, cy - s / 2, s, s, 8);
+              const g = ctx.createLinearGradient(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2);
+              g.addColorStop(0, '#334155');
+              g.addColorStop(1, '#0f172a');
+              ctx.fillStyle = g;
+              ctx.fill();
+              ctx.strokeStyle = '#475569';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              // Subtle X bevel
+              ctx.beginPath();
+              ctx.moveTo(cx - s * 0.22, cy - s * 0.22);
+              ctx.lineTo(cx + s * 0.22, cy + s * 0.22);
+              ctx.moveTo(cx + s * 0.22, cy - s * 0.22);
+              ctx.lineTo(cx - s * 0.22, cy + s * 0.22);
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            } else if (tile.type === 'E') {
+              // Laser Emitter
+              const col = COLORS[tile.color];
+              ctx.save();
+              ctx.translate(cx, cy);
+              const rotMap = [ -Math.PI / 2, 0, Math.PI / 2, Math.PI ];
+              ctx.rotate(rotMap[tile.dir]);
+
+              // Base housing
+              drawRoundedRect(-cell * 0.34, -cell * 0.3, cell * 0.62, cell * 0.6, 8);
+              ctx.fillStyle = '#1e293b';
+              ctx.fill();
+              ctx.strokeStyle = col.main;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+
+              // Nozzle
+              ctx.fillStyle = col.main;
+              ctx.beginPath();
+              ctx.moveTo(cell * 0.26, -cell * 0.14);
+              ctx.lineTo(cell * 0.42, 0);
+              ctx.lineTo(cell * 0.26, cell * 0.14);
+              ctx.closePath();
+              ctx.fill();
+
+              // Core glow dot
+              ctx.beginPath();
+              ctx.arc(-cell * 0.04, 0, cell * 0.13, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffffff';
+              ctx.shadowColor = col.main;
+              ctx.shadowBlur = 12;
+              ctx.fill();
+              ctx.restore();
+            } else if (tile.type === 'T') {
+              // Crystal Target Gem
+              const col = COLORS[tile.color];
+              const isLit = state.litTargets.has(`${r},${c}`);
+              const pulse = isLit ? (1 + 0.08 * Math.sin(state.animTime * 6)) : 1;
+              const rad = cell * 0.28 * pulse;
+
+              ctx.save();
+              ctx.translate(cx, cy);
+              if (isLit) {
+                ctx.shadowColor = col.main;
+                ctx.shadowBlur = 18;
+              }
+              ctx.beginPath();
+              ctx.moveTo(0, -rad);
+              ctx.lineTo(rad * 0.85, 0);
+              ctx.lineTo(0, rad);
+              ctx.lineTo(-rad * 0.85, 0);
+              ctx.closePath();
+              ctx.fillStyle = isLit ? col.main : 'rgba(15, 23, 42, 0.85)';
+              ctx.fill();
+              ctx.strokeStyle = col.main;
+              ctx.lineWidth = isLit ? 2.5 : 2;
+              ctx.stroke();
+
+              // Inner facet
+              ctx.beginPath();
+              ctx.moveTo(0, -rad * 0.45);
+              ctx.lineTo(rad * 0.38, 0);
+              ctx.lineTo(0, rad * 0.45);
+              ctx.lineTo(-rad * 0.38, 0);
+              ctx.closePath();
+              ctx.fillStyle = isLit ? '#ffffff' : col.glow;
+              ctx.fill();
+              ctx.restore();
+            } else if (tile.type === 'M' || tile.type === 'S') {
+              // Smoothly interpolate rotation
+              tile.visualAngle += (tile.targetAngle - tile.visualAngle) * 0.24;
+              const isSplitter = tile.type === 'S';
+
+              ctx.save();
+              ctx.translate(cx, cy);
+
+              // Subtle interactive pad
+              ctx.beginPath();
+              ctx.arc(0, 0, cell * 0.36, 0, Math.PI * 2);
+              ctx.fillStyle = isSplitter ? 'rgba(245, 158, 11, 0.12)' : 'rgba(56, 189, 248, 0.10)';
+              ctx.fill();
+              ctx.strokeStyle = isSplitter ? 'rgba(251, 191, 36, 0.35)' : 'rgba(56, 189, 248, 0.32)';
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+
+              // Rotate bar: rot=0 -> '/' (-45deg), rot=1 -> '\' (+45deg)
+              ctx.rotate(-Math.PI / 4 + tile.visualAngle);
+
+              const len = cell * 0.62;
+              const thick = isSplitter ? Math.max(5, cell * 0.11) : Math.max(6

@@ -1,0 +1,8 @@
+{
+  "name": "Spark",
+  "description": "Neon optical laser puzzle PWA with rail-sliding optics, 4-way diodes, beam fusion, 500 levels, and 90s Blitz Rush.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

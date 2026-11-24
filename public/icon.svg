@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#131d3b" />
+      <stop offset="65%" stop-color="#070b18" />
+      <stop offset="100%" stop-color="#040711" />
+    </radialGradient>
+    <linearGradient id="beamCyan" x1="0%" y1="50%" x2="50%" y2="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#00f0ff" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient id="beamMagenta" x1="50%" y1="50%" x2="100%" y2="25%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#ff2a85" stop-opacity="0.25" />
+    </linearGradient>
+    <linearGradient id="beamGold" x1="50%" y1="50%" x2="100%" y2="75%">
+      <stop offset="0%" stop-color="#ffbe0b" />
+      <stop offset="100%" stop-color="#ffbe0b" stop-opacity="0.25" />
+    </linearGradient>
+    <linearGradient id="prismFill" x1="25%" y1="15%" x2="75%" y2="85%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#0f172a" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#e879f9" stop-opacity="0.85" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)" />
+  <line x1="48" y1="256" x2="236" y2="256" stroke="#00f0ff" stroke-width="24" stroke-linecap="round" opacity="0.32" />
+  <line x1="48" y1="256" x2="236" y2="256" stroke="#00f0ff" stroke-width="10" stroke-linecap="round" />
+  <line x1="48" y1="256" x2="236" y2="256" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+
+  <line x1="276" y1="242" x2="460" y2="148" stroke="#ff2a85" stroke-width="22" stroke-linecap="round" opacity="0.32" />
+  <line x1="276" y1="242" x2="460" y2="148" stroke="#ff2a85" stroke-width="9" stroke-linecap="round" />
+  <line x1="276" y1="242" x2="460" y2="148" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+
+  <line x1="276" y1="270" x2="460" y2="364" stroke="#ffbe0b" stroke-width="22" stroke-linecap="round" opacity="0.32" />
+  <line x1="276" y1="270" x2="460" y2="364" stroke="#ffbe0b" stroke-width="9" stroke-linecap="round" />
+  <line x1="276" y1="270" x2="460" y2="364" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+
+  <polygon points="256,118 358,256 256,394 154,256" fill="url(#prismFill)" stroke="#67e8f9" stroke-width="10" stroke-linejoin="round" />
+  <polygon points="256,174 310,256 256,338 202,256" fill="#ffffff" opacity="0.2" />
+  <circle cx="256" cy="256" r="14" fill="#ffffff" />
+</svg>
